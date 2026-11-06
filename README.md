@@ -40,7 +40,7 @@ The chat list is local demo data. Deletion does not contact Telegram or any serv
 | `ThanosAnimationDemo/Sources/DustLoki.metal` and `ThanosAnimationDemo/Sources/loki_header.metal` | Random-number implementation used by the particle simulation |
 
 ## Requirements
-
+- No dependencies, UIKit, iOS 16+.
 - Xcode with the iOS SDK and Metal tools installed.
 - iOS Simulator or a Metal-capable iPhone.
 - No third-party packages, server, credentials, or Apple Developer membership for Simulator builds.
