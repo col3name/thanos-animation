@@ -22,7 +22,9 @@ final class ChatListDemoViewController: UIViewController, UITableViewDataSource,
     ]
 
     private let tableView = UITableView(frame: .zero, style: .plain)
-    private let dustEffectView = DustEffectView(frame: .zero)
+    // Building Metal pipelines is relatively expensive; defer it until a chat is deleted.
+    private lazy var dustEffectView = DustEffectView(frame: .zero)
+    private var isDustEffectConfigured = false
     private let titleBar = UIView()
     private let folderBar = ChatFolderBar()
     private let searchBar = ChatSearchBar()
@@ -39,6 +41,7 @@ final class ChatListDemoViewController: UIViewController, UITableViewDataSource,
     private var undoBanner: DeleteUndoBanner?
     private var deletionBatchInFlight = false
     private var undoWaitingForDeleteBatch = false
+    private var hasScheduledDustWarmup = false
 
     override var preferredStatusBarStyle: UIStatusBarStyle { .darkContent }
 
@@ -49,11 +52,25 @@ final class ChatListDemoViewController: UIViewController, UITableViewDataSource,
         navigationController?.setNavigationBarHidden(true, animated: false)
         configureHeader()
         configureTable()
-        configureDustEffect()
         configureBottomTabs()
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        guard !hasScheduledDustWarmup else { return }
+        hasScheduledDustWarmup = true
+        // Give the first screen a quiet moment before creating the renderer and warming Metal.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            guard let self, self.view.window != nil else { return }
+            self.configureDustEffect()
+            self.view.layoutIfNeeded()
+            self.dustEffectView.prepare()
+        }
+    }
+
     private func configureDustEffect() {
+        guard !isDustEffectConfigured else { return }
+        isDustEffectConfigured = true
         dustEffectView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(dustEffectView)
         NSLayoutConstraint.activate([
@@ -265,13 +282,14 @@ final class ChatListDemoViewController: UIViewController, UITableViewDataSource,
         )
         alert.addAction(UIAlertAction(title: "Delete just for me", style: .destructive) { [weak self] _ in
             guard let self else { return }
-            self.dismiss(animated: true) {
+            // Avoid fading the chat list back in before its dust animation starts.
+            self.dismiss(animated: false) {
                 self.deleteChat(named: chatName)
             }
         })
         alert.addAction(UIAlertAction(title: "Delete for me and \(chatName)", style: .destructive) { [weak self] _ in
             guard let self else { return }
-            self.dismiss(animated: true) {
+            self.dismiss(animated: false) {
                 self.showDeleteForEveryoneWarning(chatName: chatName)
             }
         })
@@ -288,7 +306,7 @@ final class ChatListDemoViewController: UIViewController, UITableViewDataSource,
         warning.addAction(UIAlertAction(title: "Cancel", style: .cancel))
         warning.addAction(UIAlertAction(title: "Delete All", style: .destructive) { [weak self] _ in
             guard let self else { return }
-            self.dismiss(animated: true) {
+            self.dismiss(animated: false) {
                 self.deleteChatWithUndo(named: chatName)
             }
         })
@@ -418,35 +436,54 @@ final class ChatListDemoViewController: UIViewController, UITableViewDataSource,
             removeChatWithoutAnimation(at: indexPath, completion: onCompletion)
             return
         }
+        // Swipe-to-delete can leave a transient alpha animation on the cell.
+        // Stop it and restore full visibility before capturing the row for DustEffect.
+        cell.layer.removeAllAnimations()
+        cell.contentView.layer.removeAllAnimations()
+        cell.alpha = 1
+        cell.contentView.alpha = 1
+        cell.contentView.isHidden = false
         let deletingChatName = chats[index].name
         let image = UIGraphicsImageRenderer(size: cell.contentView.bounds.size).image { _ in
             cell.contentView.drawHierarchy(in: CGRect(origin: .zero, size: cell.contentView.bounds.size), afterScreenUpdates: false)
         }
+        // Create the Metal renderer only for the first deletion, keeping app launch light.
+        configureDustEffect()
+        view.layoutIfNeeded()
         // Try Telegram's Metal DustEffect first. If its renderer cannot start on this
         // device, animate image fragments so deletion never silently skips the effect.
         let frame = cell.contentView.convert(cell.contentView.bounds, to: dustEffectView)
-        if !dustEffectView.dissolve(image: image, at: frame) {
+        let beginRowRemoval = { [weak self, weak cell] in
+            guard let self, let cell else {
+                onCompletion?()
+                return
+            }
+            cell.contentView.isHidden = true
+            cell.isUserInteractionEnabled = false
+            guard let currentIndex = self.chats.firstIndex(where: { $0.name == deletingChatName }) else {
+                onCompletion?()
+                return
+            }
+            let row = IndexPath(row: currentIndex, section: 0)
+            self.chats.remove(at: currentIndex)
+            onDeletionStarted?()
+            UIView.animate(withDuration: 0.8, delay: 0, options: [.curveEaseInOut, .allowUserInteraction]) {
+                self.tableView.performBatchUpdates({
+                    self.tableView.deleteRows(at: [row], with: .none)
+                }, completion: { _ in onCompletion?() })
+            }
+        }
+        let startedMetalEffect = dustEffectView.dissolve(
+            image: image,
+            at: frame,
+            onFirstFrame: beginRowRemoval
+        )
+        if !startedMetalEffect {
             let fallbackFrame = cell.contentView.convert(cell.contentView.bounds, to: view)
             animateFallbackDust(image: image, frame: fallbackFrame)
+            beginRowRemoval()
         }
-        cell.contentView.isHidden = true
-        cell.isUserInteractionEnabled = false
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        guard let currentIndex = chats.firstIndex(where: { $0.name == deletingChatName }) else {
-            onCompletion?()
-            return
-        }
-        let row = IndexPath(row: currentIndex, section: 0)
-        chats.remove(at: currentIndex)
-        // Show the undo notification with the start of the Dust Effect, not after the
-        // 0.8-second row-collapse animation has already finished.
-        onDeletionStarted?()
-        // Telegram coordinates row collapse with the dust sweep at 0.8 seconds.
-        UIView.animate(withDuration: 0.8, delay: 0, options: [.curveEaseInOut, .allowUserInteraction]) {
-            self.tableView.performBatchUpdates({
-                self.tableView.deleteRows(at: [row], with: .fade)
-            }, completion: { _ in onCompletion?() })
-        }
     }
 
     private func animateFallbackDust(image: UIImage, frame: CGRect) {

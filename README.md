@@ -21,6 +21,7 @@ The chat list is local demo data. Deletion does not contact Telegram or any serv
 ## Animation behavior
 
 - The app captures the visible chat row and passes the snapshot to a Metal particle effect.
+- Metal pipelines warm asynchronously after the chat list appears, with a short delay to keep initial rendering responsive.
 - Particles scatter from the row as the table animates the deleted row closed.
 - If Metal cannot initialize or render the effect, the app uses a tiled image-fragment animation as a fallback.
 - The reversible delete flow displays an Undo action while the deletion window is open.
@@ -35,7 +36,6 @@ The chat list is local demo data. Deletion does not contact Telegram or any serv
 | `ThanosAnimationDemo/Sources/DustFluidSimulation.swift` | Particle and fluid simulation used by the effect |
 | `ThanosAnimationDemo/Sources/DustEffectShaders.metal` | Metal compute and render shaders |
 | `ThanosAnimationDemo/Sources/DustLoki.metal` and `ThanosAnimationDemo/Sources/loki_header.metal` | Random-number implementation used by the particle simulation |
-| `ThanosAnimationDemo/Sources/WalletDemoViewController.swift` | Separate balance privacy demo screen implementation |
 
 ## Requirements
 

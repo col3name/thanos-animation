@@ -18,12 +18,9 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		12ACF7AE101A18B9A74A15B7 /* PrivacyBalanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyBalanceView.swift; sourceTree = "<group>"; };
 		155FF2C7212A1BB167580464 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		349560ECA33779BF460B04C4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		71238CA86B26057F51B6559F /* BalanceParticles.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = BalanceParticles.metal; sourceTree = "<group>"; };
 		80D0F7B351F340A1A5ECA19B /* ChatListDemoViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatListDemoViewController.swift; sourceTree = "<group>"; };
-		945382D16BA31A5092E57A93 /* WalletDemoViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletDemoViewController.swift; sourceTree = "<group>"; };
 		A17A0C01E6B449B9A1D00002 /* DustEffectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DustEffectView.swift; sourceTree = "<group>"; };
 		A17A0C01E6B449B9A1D00004 /* DustFluidSimulation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DustFluidSimulation.swift; sourceTree = "<group>"; };
 		A17A0C01E6B449B9A1D00006 /* DustEffectShaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = DustEffectShaders.metal; sourceTree = "<group>"; };
@@ -31,7 +28,6 @@
 		A17A0C01E6B449B9A1D00010 /* DustLoki.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = DustLoki.metal; sourceTree = "<group>"; };
 		A17A0C01E6B449B9A1D00011 /* loki_header.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = loki_header.metal; sourceTree = "<group>"; };
 		DECB254F9F6046E214AE8A06 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		E8DF29702C4EBD4200DECE95 /* BalanceParticlesMetalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BalanceParticlesMetalView.swift; sourceTree = "<group>"; };
 		F82CA38F99180137D215F6D4 /* ThanosAnimationDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ThanosAnimationDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -61,10 +57,6 @@
 			children = (
 				155FF2C7212A1BB167580464 /* AppDelegate.swift */,
 				80D0F7B351F340A1A5ECA19B /* ChatListDemoViewController.swift */,
-				945382D16BA31A5092E57A93 /* WalletDemoViewController.swift */,
-				12ACF7AE101A18B9A74A15B7 /* PrivacyBalanceView.swift */,
-				E8DF29702C4EBD4200DECE95 /* BalanceParticlesMetalView.swift */,
-				71238CA86B26057F51B6559F /* BalanceParticles.metal */,
 				A17A0C01E6B449B9A1D00002 /* DustEffectView.swift */,
 				A17A0C01E6B449B9A1D00004 /* DustFluidSimulation.swift */,
 				A17A0C01E6B449B9A1D00006 /* DustEffectShaders.metal */,

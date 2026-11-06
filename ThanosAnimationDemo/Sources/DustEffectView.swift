@@ -13,12 +13,13 @@ final class DustEffectView: UIView, MTKViewDelegate {
         let buffer: MTLBuffer
         let count: Int
         let resolution: SIMD2<UInt32>
+        var onFirstFrame: (() -> Void)?
         var phase: Float = 0
         var elapsed: Float = 0
         var initialized = false
         var readyForRendering = false
 
-        init?(frame: CGRect, image: UIImage, device: MTLDevice) {
+        init?(frame: CGRect, image: UIImage, device: MTLDevice, onFirstFrame: (() -> Void)?) {
             guard let cgImage = image.cgImage,
                   let texture = try? MTKTextureLoader(device: device).newTexture(
                     cgImage: cgImage, options: [.SRGB: false as NSNumber]) else { return nil }
@@ -35,6 +36,7 @@ final class DustEffectView: UIView, MTKViewDelegate {
             self.buffer = buffer
             self.count = count
             self.resolution = SIMD2<UInt32>(UInt32(columns), UInt32(rows))
+            self.onFirstFrame = onFirstFrame
         }
     }
 
@@ -45,12 +47,20 @@ final class DustEffectView: UIView, MTKViewDelegate {
         var isEnabled: Float
     }
 
+    private struct PreparedPipelines {
+        let commandQueue: MTLCommandQueue
+        let draw: MTLRenderPipelineState
+        let initialize: MTLComputePipelineState
+        let update: MTLComputePipelineState
+    }
+
     private let device: MTLDevice?
     private var metalView: MTKView?
     private var commandQueue: MTLCommandQueue?
     private var drawPipeline: MTLRenderPipelineState?
     private var initializePipeline: MTLComputePipelineState?
     private var updatePipeline: MTLComputePipelineState?
+    private var isPreparing = false
     private var items: [Item] = []
     private var previousFrameTime: CFTimeInterval?
     private var lastTimeStep: Float = 0
@@ -70,30 +80,6 @@ final class DustEffectView: UIView, MTKViewDelegate {
             NSLog("Telegram DustEffect initialization failed: no system Metal device.")
             return
         }
-        guard let queue = device.makeCommandQueue() else {
-            NSLog("Telegram DustEffect initialization failed: could not create a Metal command queue.")
-            return
-        }
-        // Explicitly query the app bundle on device, then fall back to the default
-        // library lookup used by Xcode's generated metallib.
-        let library = (try? device.makeDefaultLibrary(bundle: .main)) ?? device.makeDefaultLibrary()
-        guard let library else {
-            NSLog("Telegram DustEffect initialization failed: default.metallib is missing from the app bundle.")
-            return
-        }
-        guard let vertex = library.makeFunction(name: "dustEffectVertex"),
-              let fragment = library.makeFunction(name: "dustEffectFragment"),
-              let initialize = library.makeFunction(name: "dustEffectInitializeParticle"),
-              let update = library.makeFunction(name: "dustEffectUpdateParticle") else {
-            NSLog("Telegram DustEffect initialization failed: required particle kernels are missing from default.metallib.")
-            return
-        }
-        guard let initPipeline = try? device.makeComputePipelineState(function: initialize),
-              let updatePipeline = try? device.makeComputePipelineState(function: update) else {
-            NSLog("Telegram DustEffect initialization failed: could not compile the particle compute pipelines.")
-            return
-        }
-
         let mtk = MTKView(frame: bounds, device: device)
         mtk.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         mtk.backgroundColor = .clear
@@ -106,7 +92,53 @@ final class DustEffectView: UIView, MTKViewDelegate {
         mtk.isPaused = true
         mtk.delegate = self
         addSubview(mtk)
+        self.metalView = mtk
+        isHidden = true
+    }
 
+    /// Compiles the Metal pipelines away from the main thread. Call after the
+    /// presenting screen is visible so the initial frame is not delayed.
+    func prepare() {
+        guard !isReady, !isPreparing, let device else { return }
+        isPreparing = true
+        DispatchQueue.global(qos: .utility).async { [weak self, device] in
+            let pipelines = Self.makePipelines(device: device)
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.isPreparing = false
+                guard let pipelines else { return }
+                self.commandQueue = pipelines.commandQueue
+                self.drawPipeline = pipelines.draw
+                self.initializePipeline = pipelines.initialize
+                self.updatePipeline = pipelines.update
+                self.isHidden = true
+            }
+        }
+    }
+
+    private static func makePipelines(device: MTLDevice) -> PreparedPipelines? {
+        guard let queue = device.makeCommandQueue() else {
+            NSLog("Telegram DustEffect initialization failed: could not create a Metal command queue.")
+            return nil
+        }
+        // Explicitly query the app bundle on device, then fall back to the default
+        // library lookup used by Xcode's generated metallib.
+        guard let library = (try? device.makeDefaultLibrary(bundle: .main)) ?? device.makeDefaultLibrary() else {
+            NSLog("Telegram DustEffect initialization failed: default.metallib is missing from the app bundle.")
+            return nil
+        }
+        guard let vertex = library.makeFunction(name: "dustEffectVertex"),
+              let fragment = library.makeFunction(name: "dustEffectFragment"),
+              let initialize = library.makeFunction(name: "dustEffectInitializeParticle"),
+              let update = library.makeFunction(name: "dustEffectUpdateParticle") else {
+            NSLog("Telegram DustEffect initialization failed: required particle kernels are missing from default.metallib.")
+            return nil
+        }
+        guard let initPipeline = try? device.makeComputePipelineState(function: initialize),
+              let updatePipeline = try? device.makeComputePipelineState(function: update) else {
+            NSLog("Telegram DustEffect initialization failed: could not compile the particle compute pipelines.")
+            return nil
+        }
         let descriptor = MTLRenderPipelineDescriptor()
         descriptor.vertexFunction = vertex
         descriptor.fragmentFunction = fragment
@@ -118,14 +150,10 @@ final class DustEffectView: UIView, MTKViewDelegate {
         descriptor.colorAttachments[0].destinationAlphaBlendFactor = .oneMinusSourceAlpha
         guard let drawPipeline = try? device.makeRenderPipelineState(descriptor: descriptor) else {
             NSLog("Telegram DustEffect initialization failed: could not compile the particle render pipeline.")
-            return
+            return nil
         }
-        self.metalView = mtk
-        self.commandQueue = queue
-        self.drawPipeline = drawPipeline
-        self.initializePipeline = initPipeline
-        self.updatePipeline = updatePipeline
-        isHidden = true
+        return PreparedPipelines(commandQueue: queue, draw: drawPipeline,
+                                 initialize: initPipeline, update: updatePipeline)
     }
 
     required init?(coder: NSCoder) { fatalError("Use init(frame:)") }
@@ -144,13 +172,14 @@ final class DustEffectView: UIView, MTKViewDelegate {
     /// The `frame` must be in this view's point coordinate system; the `image` is
     /// a pixel-accurate snapshot of that same rectangle.
     @discardableResult
-    func dissolve(image: UIImage, at frame: CGRect) -> Bool {
+    func dissolve(image: UIImage, at frame: CGRect, onFirstFrame: (() -> Void)? = nil) -> Bool {
         guard let device, isReady, !frame.isEmpty else {
+            prepare()
             NSLog("Telegram DustEffect could not start: renderer ready=%@, frame=%@.", String(isReady), String(describing: frame))
             onUnavailable?()
             return false
         }
-        guard let item = Item(frame: frame, image: image, device: device) else {
+        guard let item = Item(frame: frame, image: image, device: device, onFirstFrame: onFirstFrame) else {
             NSLog("Telegram DustEffect could not start: could not upload the chat snapshot as a Metal texture.")
             onUnavailable?()
             return false
@@ -260,6 +289,18 @@ final class DustEffectView: UIView, MTKViewDelegate {
             encoder.endEncoding()
         }
         commandBuffer.present(drawable)
+        let firstFrameCallbacks = items.compactMap { item -> (() -> Void)? in
+            guard item.readyForRendering, let callback = item.onFirstFrame else { return nil }
+            item.onFirstFrame = nil
+            return callback
+        }
+        if !firstFrameCallbacks.isEmpty {
+            commandBuffer.addCompletedHandler { _ in
+                DispatchQueue.main.async {
+                    firstFrameCallbacks.forEach { $0() }
+                }
+            }
+        }
         commandBuffer.commit()
 
         items.removeAll(where: { $0.phase >= 4 && $0.elapsed >= 2.9 })
