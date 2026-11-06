@@ -1,0 +1,345 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		5AC7C72E30D14A4AA9AEE920 /* ChatListDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80D0F7B351F340A1A5ECA19B /* ChatListDemoViewController.swift */; };
+		A17A0C01E6B449B9A1D00001 /* DustEffectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17A0C01E6B449B9A1D00002 /* DustEffectView.swift */; };
+		A17A0C01E6B449B9A1D00003 /* DustFluidSimulation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17A0C01E6B449B9A1D00004 /* DustFluidSimulation.swift */; };
+		A17A0C01E6B449B9A1D00005 /* DustEffectShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = A17A0C01E6B449B9A1D00006 /* DustEffectShaders.metal */; };
+		A17A0C01E6B449B9A1D00007 /* DustFluidShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = A17A0C01E6B449B9A1D00008 /* DustFluidShaders.metal */; };
+		A17A0C01E6B449B9A1D00009 /* DustLoki.metal in Sources */ = {isa = PBXBuildFile; fileRef = A17A0C01E6B449B9A1D00010 /* DustLoki.metal */; };
+		A17A0C01E6B449B9A1D00012 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DECB254F9F6046E214AE8A06 /* Assets.xcassets */; };
+		FD005CE3A4FE2D89648A6F50 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 155FF2C7212A1BB167580464 /* AppDelegate.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		12ACF7AE101A18B9A74A15B7 /* PrivacyBalanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyBalanceView.swift; sourceTree = "<group>"; };
+		155FF2C7212A1BB167580464 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		349560ECA33779BF460B04C4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		71238CA86B26057F51B6559F /* BalanceParticles.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = BalanceParticles.metal; sourceTree = "<group>"; };
+		80D0F7B351F340A1A5ECA19B /* ChatListDemoViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatListDemoViewController.swift; sourceTree = "<group>"; };
+		945382D16BA31A5092E57A93 /* WalletDemoViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletDemoViewController.swift; sourceTree = "<group>"; };
+		A17A0C01E6B449B9A1D00002 /* DustEffectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DustEffectView.swift; sourceTree = "<group>"; };
+		A17A0C01E6B449B9A1D00004 /* DustFluidSimulation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DustFluidSimulation.swift; sourceTree = "<group>"; };
+		A17A0C01E6B449B9A1D00006 /* DustEffectShaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = DustEffectShaders.metal; sourceTree = "<group>"; };
+		A17A0C01E6B449B9A1D00008 /* DustFluidShaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = DustFluidShaders.metal; sourceTree = "<group>"; };
+		A17A0C01E6B449B9A1D00010 /* DustLoki.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = DustLoki.metal; sourceTree = "<group>"; };
+		A17A0C01E6B449B9A1D00011 /* loki_header.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = loki_header.metal; sourceTree = "<group>"; };
+		DECB254F9F6046E214AE8A06 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		E8DF29702C4EBD4200DECE95 /* BalanceParticlesMetalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BalanceParticlesMetalView.swift; sourceTree = "<group>"; };
+		F82CA38F99180137D215F6D4 /* BalancePrivacyDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BalancePrivacyDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		E2AA269EB967A8853A258BFA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		085ED06E573690BA3A56BC1E /* BalancePrivacyDemo */ = {
+			isa = PBXGroup;
+			children = (
+				596B73E0DA7F040AAF99B86E /* Sources */,
+				DECB254F9F6046E214AE8A06 /* Assets.xcassets */,
+				349560ECA33779BF460B04C4 /* Info.plist */,
+			);
+			path = BalancePrivacyDemo;
+			sourceTree = "<group>";
+		};
+		596B73E0DA7F040AAF99B86E /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				155FF2C7212A1BB167580464 /* AppDelegate.swift */,
+				80D0F7B351F340A1A5ECA19B /* ChatListDemoViewController.swift */,
+				945382D16BA31A5092E57A93 /* WalletDemoViewController.swift */,
+				12ACF7AE101A18B9A74A15B7 /* PrivacyBalanceView.swift */,
+				E8DF29702C4EBD4200DECE95 /* BalanceParticlesMetalView.swift */,
+				71238CA86B26057F51B6559F /* BalanceParticles.metal */,
+				A17A0C01E6B449B9A1D00002 /* DustEffectView.swift */,
+				A17A0C01E6B449B9A1D00004 /* DustFluidSimulation.swift */,
+				A17A0C01E6B449B9A1D00006 /* DustEffectShaders.metal */,
+				A17A0C01E6B449B9A1D00008 /* DustFluidShaders.metal */,
+				A17A0C01E6B449B9A1D00010 /* DustLoki.metal */,
+				A17A0C01E6B449B9A1D00011 /* loki_header.metal */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		6F7199ED7B63CDA338A0FB82 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				F82CA38F99180137D215F6D4 /* BalancePrivacyDemo.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		CC5D242D023A9271190EA7C6 = {
+			isa = PBXGroup;
+			children = (
+				085ED06E573690BA3A56BC1E /* BalancePrivacyDemo */,
+				6F7199ED7B63CDA338A0FB82 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		34A04005BCAF206EEC990BD9 /* BalancePrivacyDemo */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1D9DA57D20EFD583398AC15A /* Build configuration list for PBXNativeTarget "BalancePrivacyDemo" */;
+			buildPhases = (
+				878A52FC5FF6A57D50B7B870 /* Sources */,
+				E2AA269EB967A8853A258BFA /* Frameworks */,
+				41D311A605520FC7B8B9A980 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = BalancePrivacyDemo;
+			productName = BalancePrivacyDemo;
+			productReference = F82CA38F99180137D215F6D4 /* BalancePrivacyDemo.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		244210E48437B6556980A702 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					34A04005BCAF206EEC990BD9 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+				};
+			};
+			buildConfigurationList = 4AA05EC3301949773ED0AC0A /* Build configuration list for PBXProject "BalancePrivacyDemo" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = CC5D242D023A9271190EA7C6;
+			productRefGroup = 6F7199ED7B63CDA338A0FB82 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				34A04005BCAF206EEC990BD9 /* BalancePrivacyDemo */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		41D311A605520FC7B8B9A980 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A17A0C01E6B449B9A1D00012 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		878A52FC5FF6A57D50B7B870 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FD005CE3A4FE2D89648A6F50 /* AppDelegate.swift in Sources */,
+				5AC7C72E30D14A4AA9AEE920 /* ChatListDemoViewController.swift in Sources */,
+				A17A0C01E6B449B9A1D00001 /* DustEffectView.swift in Sources */,
+				A17A0C01E6B449B9A1D00003 /* DustFluidSimulation.swift in Sources */,
+				A17A0C01E6B449B9A1D00005 /* DustEffectShaders.metal in Sources */,
+				A17A0C01E6B449B9A1D00007 /* DustFluidShaders.metal in Sources */,
+				A17A0C01E6B449B9A1D00009 /* DustLoki.metal in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		86680E473A81A55C52C0A72D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = BalancePrivacyDemo/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.balanceparticlesdemo;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		8DB23D5B0AA80A48AA651830 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = ZV2CVZCS2G;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		FAE000AE36B4E50C28275D58 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = BalancePrivacyDemo/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.balanceparticlesdemo;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		FDD3EA28A0B1309668A442B2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = ZV2CVZCS2G;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1D9DA57D20EFD583398AC15A /* Build configuration list for PBXNativeTarget "BalancePrivacyDemo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				86680E473A81A55C52C0A72D /* Debug */,
+				FAE000AE36B4E50C28275D58 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4AA05EC3301949773ED0AC0A /* Build configuration list for PBXProject "BalancePrivacyDemo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FDD3EA28A0B1309668A442B2 /* Debug */,
+				8DB23D5B0AA80A48AA651830 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 244210E48437B6556980A702 /* Project object */;
+}
