@@ -2,6 +2,8 @@
 
 A standalone UIKit + Metal demo of a chat list where a deleted conversation breaks into tiny particles and scatters away, like the Thanos dust effect. The animation is attached to the chat row; after the particles disperse, the remaining rows close the gap.
 
+![Chat deletion demo](docs/videos/demo.gif)
+
 The chat list is recreated from [Telegram-iOS](https://github.com/TelegramMessenger/Telegram-iOS), with its DustEffect particle logic adapted for chat deletion. The demo uses UIKit, `UITableView`, and Auto Layout instead of Telegram’s `ListView` and `ASDisplayNode`.
 
 ## DustEffect source

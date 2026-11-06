@@ -12,7 +12,7 @@ final class ChatListDemoViewController: UIViewController, UITableViewDataSource,
         let sent: Bool
     }
 
-    private var chats: [Chat] = [
+    private let initialChats: [Chat] = [
         .init(name: "Mike", time: "22:23", avatar: .mike,
               preview: .message("🤫 Sticker"), sent: true),
         .init(name: "Stocks", time: "05:35", avatar: .saved,
@@ -20,8 +20,11 @@ final class ChatListDemoViewController: UIViewController, UITableViewDataSource,
         .init(name: "Designers", time: "22:16", avatar: .designers,
               preview: .designerMessage, sent: true)
     ]
+    private var chats: [Chat] = []
 
     private let tableView = UITableView(frame: .zero, style: .plain)
+    private let emptyStateView = UIView()
+    private let resetButton = UIButton(type: .system)
     // Building Metal pipelines is relatively expensive; defer it until a chat is deleted.
     private lazy var dustEffectView = DustEffectView(frame: .zero)
     private var isDustEffectConfigured = false
@@ -53,6 +56,8 @@ final class ChatListDemoViewController: UIViewController, UITableViewDataSource,
         configureHeader()
         configureTable()
         configureBottomTabs()
+        chats = initialChats
+        updateEmptyState()
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -196,6 +201,8 @@ final class ChatListDemoViewController: UIViewController, UITableViewDataSource,
         tableView.dataSource = self
         tableView.delegate = self
         tableView.register(ChatRowCell.self, forCellReuseIdentifier: ChatRowCell.reuseID)
+        configureEmptyState()
+        tableView.backgroundView = emptyStateView
         view.addSubview(tableView)
         NSLayoutConstraint.activate([
             tableView.topAnchor.constraint(equalTo: folderBar.bottomAnchor, constant: 3),
@@ -203,6 +210,52 @@ final class ChatListDemoViewController: UIViewController, UITableViewDataSource,
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -78)
         ])
+    }
+
+    private func configureEmptyState() {
+        emptyStateView.backgroundColor = .white
+        let messageLabel = UILabel()
+        messageLabel.text = "All chats deleted"
+        messageLabel.textColor = UIColor(white: 0.48, alpha: 1)
+        messageLabel.font = .systemFont(ofSize: 15)
+        messageLabel.textAlignment = .center
+
+        resetButton.setTitle("Reset", for: .normal)
+        resetButton.setTitleColor(.white, for: .normal)
+        resetButton.titleLabel?.font = .systemFont(ofSize: 16, weight: .semibold)
+        resetButton.backgroundColor = UIColor(red: 0, green: 0.533, blue: 1, alpha: 1)
+        resetButton.layer.cornerRadius = 11
+        resetButton.contentEdgeInsets = UIEdgeInsets(top: 11, left: 28, bottom: 11, right: 28)
+        resetButton.addTarget(self, action: #selector(resetChats), for: .touchUpInside)
+
+        let stack = UIStackView(arrangedSubviews: [messageLabel, resetButton])
+        stack.axis = .vertical
+        stack.alignment = .center
+        stack.spacing = 14
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        emptyStateView.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.centerXAnchor.constraint(equalTo: emptyStateView.centerXAnchor),
+            stack.centerYAnchor.constraint(equalTo: emptyStateView.centerYAnchor)
+        ])
+    }
+
+    private func updateEmptyState() {
+        emptyStateView.isHidden = !chats.isEmpty
+        tableView.backgroundView?.isHidden = !chats.isEmpty
+    }
+
+    @objc private func resetChats() {
+        guard chats.isEmpty else { return }
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        undoTimer?.invalidate()
+        undoTimer = nil
+        undoChat = nil
+        undoChatIndex = nil
+        dismissUndoBanner()
+        chats = initialChats
+        tableView.reloadData()
+        updateEmptyState()
     }
 
     private func configureBottomTabs() {
@@ -391,6 +444,7 @@ final class ChatListDemoViewController: UIViewController, UITableViewDataSource,
         undoChatIndex = nil
         let insertionIndex = min(originalIndex, chats.count)
         chats.insert(chat, at: insertionIndex)
+        updateEmptyState()
         let indexPath = IndexPath(row: insertionIndex, section: 0)
         tableView.performBatchUpdates({
             self.tableView.insertRows(at: [indexPath], with: .fade)
@@ -466,6 +520,7 @@ final class ChatListDemoViewController: UIViewController, UITableViewDataSource,
             }
             let row = IndexPath(row: currentIndex, section: 0)
             self.chats.remove(at: currentIndex)
+            self.updateEmptyState()
             onDeletionStarted?()
             UIView.animate(withDuration: 0.8, delay: 0, options: [.curveEaseInOut, .allowUserInteraction]) {
                 self.tableView.performBatchUpdates({
@@ -527,6 +582,7 @@ final class ChatListDemoViewController: UIViewController, UITableViewDataSource,
             return
         }
         chats.remove(at: indexPath.row)
+        updateEmptyState()
         UIView.performWithoutAnimation {
             tableView.performBatchUpdates({
                 tableView.deleteRows(at: [indexPath], with: .none)
