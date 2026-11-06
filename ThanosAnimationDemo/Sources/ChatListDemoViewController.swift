@@ -834,6 +834,7 @@ private final class FloatingChatTabs: UIView {
         ])
         configureButton(chatsButton, title: "Chats", symbol: "bubble.left.and.bubble.right.fill", color: UIColor(red: 0, green: 0.533, blue: 1, alpha: 1), badge: "2", iconSize: 24)
         configureButton(settingsButton, title: "Settings", symbol: "person.crop.circle.fill", color: .black, badge: "923", iconSize: 22)
+        chatsButton.addTarget(self, action: #selector(chatsTapped), for: .touchUpInside)
         settingsButton.addTarget(self, action: #selector(settingsTapped), for: .touchUpInside)
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -877,6 +878,7 @@ private final class FloatingChatTabs: UIView {
             ?? UIImage(systemName: "bubble.left.and.bubble.right.fill")!.withRenderingMode(.alwaysOriginal)
     }
 
+    @objc private func chatsTapped() { UIImpactFeedbackGenerator(style: .soft).impactOccurred() }
     @objc private func settingsTapped() { onSettings?() }
 }
 

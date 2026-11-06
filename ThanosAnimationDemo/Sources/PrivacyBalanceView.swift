@@ -131,6 +131,7 @@ final class PrivacyBalanceView: UIView, UIGestureRecognizerDelegate {
     }
 
     func toggle() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
         let goingToHide = (phase == .visible || phase == .appearing)
         if UIAccessibility.isReduceMotionEnabled || metal == nil {
             phase = goingToHide ? .concealed : .visible

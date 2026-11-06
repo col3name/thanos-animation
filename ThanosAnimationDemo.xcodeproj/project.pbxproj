@@ -32,7 +32,7 @@
 		A17A0C01E6B449B9A1D00011 /* loki_header.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = loki_header.metal; sourceTree = "<group>"; };
 		DECB254F9F6046E214AE8A06 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		E8DF29702C4EBD4200DECE95 /* BalanceParticlesMetalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BalanceParticlesMetalView.swift; sourceTree = "<group>"; };
-		F82CA38F99180137D215F6D4 /* BalancePrivacyDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BalancePrivacyDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F82CA38F99180137D215F6D4 /* ThanosAnimationDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ThanosAnimationDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -46,14 +46,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		085ED06E573690BA3A56BC1E /* BalancePrivacyDemo */ = {
+		085ED06E573690BA3A56BC1E /* ThanosAnimationDemo */ = {
 			isa = PBXGroup;
 			children = (
 				596B73E0DA7F040AAF99B86E /* Sources */,
 				DECB254F9F6046E214AE8A06 /* Assets.xcassets */,
 				349560ECA33779BF460B04C4 /* Info.plist */,
 			);
-			path = BalancePrivacyDemo;
+			path = ThanosAnimationDemo;
 			sourceTree = "<group>";
 		};
 		596B73E0DA7F040AAF99B86E /* Sources */ = {
@@ -78,7 +78,7 @@
 		6F7199ED7B63CDA338A0FB82 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				F82CA38F99180137D215F6D4 /* BalancePrivacyDemo.app */,
+				F82CA38F99180137D215F6D4 /* ThanosAnimationDemo.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -86,7 +86,7 @@
 		CC5D242D023A9271190EA7C6 = {
 			isa = PBXGroup;
 			children = (
-				085ED06E573690BA3A56BC1E /* BalancePrivacyDemo */,
+				085ED06E573690BA3A56BC1E /* ThanosAnimationDemo */,
 				6F7199ED7B63CDA338A0FB82 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -94,9 +94,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		34A04005BCAF206EEC990BD9 /* BalancePrivacyDemo */ = {
+		34A04005BCAF206EEC990BD9 /* ThanosAnimationDemo */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 1D9DA57D20EFD583398AC15A /* Build configuration list for PBXNativeTarget "BalancePrivacyDemo" */;
+			buildConfigurationList = 1D9DA57D20EFD583398AC15A /* Build configuration list for PBXNativeTarget "ThanosAnimationDemo" */;
 			buildPhases = (
 				878A52FC5FF6A57D50B7B870 /* Sources */,
 				E2AA269EB967A8853A258BFA /* Frameworks */,
@@ -106,9 +106,9 @@
 			);
 			dependencies = (
 			);
-			name = BalancePrivacyDemo;
-			productName = BalancePrivacyDemo;
-			productReference = F82CA38F99180137D215F6D4 /* BalancePrivacyDemo.app */;
+			name = ThanosAnimationDemo;
+			productName = ThanosAnimationDemo;
+			productReference = F82CA38F99180137D215F6D4 /* ThanosAnimationDemo.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -125,7 +125,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 4AA05EC3301949773ED0AC0A /* Build configuration list for PBXProject "BalancePrivacyDemo" */;
+			buildConfigurationList = 4AA05EC3301949773ED0AC0A /* Build configuration list for PBXProject "ThanosAnimationDemo" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -138,7 +138,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				34A04005BCAF206EEC990BD9 /* BalancePrivacyDemo */,
+				34A04005BCAF206EEC990BD9 /* ThanosAnimationDemo */,
 			);
 		};
 /* End PBXProject section */
@@ -180,7 +180,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = BalancePrivacyDemo/Info.plist;
+				INFOPLIST_FILE = ThanosAnimationDemo/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -250,7 +250,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = BalancePrivacyDemo/Info.plist;
+				INFOPLIST_FILE = ThanosAnimationDemo/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -321,7 +321,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		1D9DA57D20EFD583398AC15A /* Build configuration list for PBXNativeTarget "BalancePrivacyDemo" */ = {
+		1D9DA57D20EFD583398AC15A /* Build configuration list for PBXNativeTarget "ThanosAnimationDemo" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				86680E473A81A55C52C0A72D /* Debug */,
@@ -330,7 +330,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		4AA05EC3301949773ED0AC0A /* Build configuration list for PBXProject "BalancePrivacyDemo" */ = {
+		4AA05EC3301949773ED0AC0A /* Build configuration list for PBXProject "ThanosAnimationDemo" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				FDD3EA28A0B1309668A442B2 /* Debug */,
