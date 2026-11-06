@@ -4,6 +4,10 @@ A standalone UIKit + Metal demo of a chat list where a deleted conversation brea
 
 The chat list is recreated from [Telegram-iOS](https://github.com/TelegramMessenger/Telegram-iOS), with its DustEffect particle logic adapted for chat deletion. The demo uses UIKit, `UITableView`, and Auto Layout instead of Telegram’s `ListView` and `ASDisplayNode`.
 
+## DustEffect source
+
+Adapted from Telegram-iOS: [`DustEffectLayer.swift`](https://github.com/TelegramMessenger/Telegram-iOS/blob/master/submodules/TelegramUI/Components/DustEffect/Sources/DustEffectLayer.swift), [`DustEffectShaders.metal`](https://github.com/TelegramMessenger/Telegram-iOS/blob/master/submodules/TelegramUI/Components/DustEffect/Metal/DustEffectShaders.metal), and [`DustFluidSimulation.swift`](https://github.com/TelegramMessenger/Telegram-iOS/blob/master/submodules/TelegramUI/Components/DustEffect/Sources/DustFluidSimulation.swift). The layer coordinates particle lifetime and rendering; the Metal shaders and fluid simulation drive the dissolve effect.
+
 ## Run
 
 1. Open `ThanosAnimationDemo.xcodeproj` in Xcode.
