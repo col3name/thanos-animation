@@ -220,12 +220,18 @@ final class ChatListDemoViewController: UIViewController, UITableViewDataSource,
         messageLabel.font = .systemFont(ofSize: 15)
         messageLabel.textAlignment = .center
 
-        resetButton.setTitle("Reset", for: .normal)
-        resetButton.setTitleColor(.white, for: .normal)
-        resetButton.titleLabel?.font = .systemFont(ofSize: 16, weight: .semibold)
-        resetButton.backgroundColor = UIColor(red: 0, green: 0.533, blue: 1, alpha: 1)
-        resetButton.layer.cornerRadius = 11
-        resetButton.contentEdgeInsets = UIEdgeInsets(top: 11, left: 28, bottom: 11, right: 28)
+        var resetConfiguration = UIButton.Configuration.filled()
+        resetConfiguration.title = "Reset"
+        resetConfiguration.baseForegroundColor = .white
+        resetConfiguration.baseBackgroundColor = UIColor(red: 0, green: 0.533, blue: 1, alpha: 1)
+        resetConfiguration.contentInsets = NSDirectionalEdgeInsets(top: 11, leading: 28, bottom: 11, trailing: 28)
+        resetConfiguration.background.cornerRadius = 11
+        resetConfiguration.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { attributes in
+            var updatedAttributes = attributes
+            updatedAttributes.font = .systemFont(ofSize: 16, weight: .semibold)
+            return updatedAttributes
+        }
+        resetButton.configuration = resetConfiguration
         resetButton.addTarget(self, action: #selector(resetChats), for: .touchUpInside)
 
         let stack = UIStackView(arrangedSubviews: [messageLabel, resetButton])
@@ -337,7 +343,7 @@ final class ChatListDemoViewController: UIViewController, UITableViewDataSource,
             guard let self else { return }
             // Avoid fading the chat list back in before its dust animation starts.
             self.dismiss(animated: false) {
-                self.deleteChat(named: chatName)
+                self.deleteChatWithUndo(named: chatName, message: "Chat deleted for me.")
             }
         })
         alert.addAction(UIAlertAction(title: "Delete for me and \(chatName)", style: .destructive) { [weak self] _ in
@@ -360,13 +366,13 @@ final class ChatListDemoViewController: UIViewController, UITableViewDataSource,
         warning.addAction(UIAlertAction(title: "Delete All", style: .destructive) { [weak self] _ in
             guard let self else { return }
             self.dismiss(animated: false) {
-                self.deleteChatWithUndo(named: chatName)
+                self.deleteChatWithUndo(named: chatName, message: "Chat deleted for both sides.")
             }
         })
         present(warning, animated: true)
     }
 
-    private func deleteChatWithUndo(named chatName: String) {
+    private func deleteChatWithUndo(named chatName: String, message: String) {
         guard !deletionBatchInFlight,
               let row = chats.firstIndex(where: { $0.name == chatName }) else { return }
         let deletedChat = chats[row]
@@ -374,20 +380,20 @@ final class ChatListDemoViewController: UIViewController, UITableViewDataSource,
         dissolveChat(
             at: IndexPath(row: row, section: 0),
             onDeletionStarted: { [weak self] in
-                self?.showUndoBanner(for: deletedChat, originalIndex: row)
+                self?.showUndoBanner(for: deletedChat, originalIndex: row, message: message)
             },
             onCompletion: { [weak self] in self?.deleteBatchDidComplete() }
         )
     }
 
-    private func showUndoBanner(for chat: Chat, originalIndex: Int) {
+    private func showUndoBanner(for chat: Chat, originalIndex: Int, message: String) {
         undoTimer?.invalidate()
         undoChat = chat
         undoChatIndex = originalIndex
         undoSecondsRemaining = 5
 
         let banner = DeleteUndoBanner()
-        banner.set(secondsRemaining: undoSecondsRemaining, message: "Chat deleted for both sides.")
+        banner.set(secondsRemaining: undoSecondsRemaining, message: message)
         banner.onUndo = { [weak self] in self?.undoPendingDeletion() }
         banner.translatesAutoresizingMaskIntoConstraints = false
         banner.alpha = 0
@@ -411,7 +417,7 @@ final class ChatListDemoViewController: UIViewController, UITableViewDataSource,
             if self.undoSecondsRemaining <= 0 {
                 self.finishUndoWindow()
             } else {
-                banner.set(secondsRemaining: self.undoSecondsRemaining, message: "Chat deleted for both sides.")
+                banner.set(secondsRemaining: self.undoSecondsRemaining, message: message)
             }
         }
     }
