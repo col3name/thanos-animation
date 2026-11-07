@@ -400,7 +400,7 @@ final class ChatListDemoViewController: UIViewController, UITableViewDataSource,
             guard let self else { return }
             // Avoid fading the chat list back in before its dust animation starts.
             self.dismiss(animated: false) {
-                self.deleteChatWithUndo(named: chatName, message: "Chat deleted for me.")
+                self.deleteChatWithUndo(named: chatName)
             }
         })
         alert.addAction(UIAlertAction(title: "Delete for me and \(chatName)", style: .destructive) { [weak self] _ in
@@ -423,13 +423,13 @@ final class ChatListDemoViewController: UIViewController, UITableViewDataSource,
         warning.addAction(UIAlertAction(title: "Delete All", style: .destructive) { [weak self] _ in
             guard let self else { return }
             self.dismiss(animated: false) {
-                self.deleteChatWithUndo(named: chatName, message: "Chat deleted for both sides.")
+                self.deleteChatWithUndo(named: chatName)
             }
         })
         present(warning, animated: true)
     }
 
-    private func deleteChatWithUndo(named chatName: String, message: String) {
+    private func deleteChatWithUndo(named chatName: String) {
         guard !deletionBatchInFlight,
               let row = chats.firstIndex(where: { $0.name == chatName }) else { return }
         let deletedChat = chats[row]
@@ -437,13 +437,13 @@ final class ChatListDemoViewController: UIViewController, UITableViewDataSource,
         dissolveChat(
             at: IndexPath(row: row, section: 0),
             onDeletionStarted: { [weak self] in
-                self?.showUndoBanner(for: deletedChat, originalIndex: row, message: message)
+                self?.showUndoBanner(for: deletedChat, originalIndex: row)
             },
             onCompletion: { [weak self] in self?.deleteBatchDidComplete() }
         )
     }
 
-    private func showUndoBanner(for chat: Chat, originalIndex: Int, message: String) {
+    private func showUndoBanner(for chat: Chat, originalIndex: Int) {
         undoTimer?.invalidate()
         undoChat = chat
         undoChatIndex = originalIndex
@@ -475,7 +475,7 @@ final class ChatListDemoViewController: UIViewController, UITableViewDataSource,
             if self.undoSecondsRemaining <= 0 {
                 self.finishUndoWindow()
             } else {
-                banner.set(secondsRemaining: self.undoSecondsRemaining, message: message)
+                banner.set(secondsRemaining: self.undoSecondsRemaining, message: "Chat deleted.")
             }
         }
     }
@@ -1476,7 +1476,9 @@ final class PerformanceTelemetry {
 }
 
 private final class PerformanceHUD: UIView {
-    static let defaultsKey = "showPerformanceHUD"
+    // Start with the profiler hidden; this new key also ignores the old
+    // development value that may have left the HUD enabled on test devices.
+    static let defaultsKey = "showPerformanceHUD.defaultOff"
     var isEnabled = false {
         didSet {
             isHidden = !isEnabled
