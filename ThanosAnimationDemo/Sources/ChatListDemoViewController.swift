@@ -204,6 +204,9 @@ final class ChatListDemoViewController: UIViewController, UITableViewDataSource,
         configureEmptyState()
         tableView.backgroundView = emptyStateView
         view.addSubview(tableView)
+        // Keep the folder bar above the table so its lower shadow can fall
+        // over the first chat rows instead of being covered by the table.
+        view.bringSubviewToFront(folderBar)
         NSLayoutConstraint.activate([
             tableView.topAnchor.constraint(equalTo: folderBar.bottomAnchor, constant: 3),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -393,7 +396,8 @@ final class ChatListDemoViewController: UIViewController, UITableViewDataSource,
         undoSecondsRemaining = 5
 
         let banner = DeleteUndoBanner()
-        banner.set(secondsRemaining: undoSecondsRemaining, message: message)
+        banner.set(secondsRemaining: undoSecondsRemaining, message: "Chat deleted.")
+        banner.startCountdown(duration: 5)
         banner.onUndo = { [weak self] in self?.undoPendingDeletion() }
         banner.translatesAutoresizingMaskIntoConstraints = false
         banner.alpha = 0
@@ -654,14 +658,16 @@ private final class ChatFolderBar: UIView {
     private let selectedIndex = 2
     override init(frame: CGRect) {
         super.init(frame: frame)
-        backgroundColor = .white
-        layer.cornerRadius = 20
+        backgroundColor = .clear
+        // Match the search field's continuous outer silhouette while keeping the
+        // folder bar's white surface consistent with the title bar.
+        layer.cornerRadius = 22
         layer.cornerCurve = .continuous
         layer.borderWidth = 0
-        layer.shadowColor = UIColor.black.withAlphaComponent(0.08).cgColor
+        layer.shadowColor = UIColor.black.withAlphaComponent(0.06).cgColor
         layer.shadowOpacity = 1
-        layer.shadowRadius = 12
-        layer.shadowOffset = CGSize(width: 0, height: 3)
+        layer.shadowRadius = 16
+        layer.shadowOffset = CGSize(width: 0, height: 2)
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     override func layoutSubviews() {
@@ -669,11 +675,20 @@ private final class ChatFolderBar: UIView {
         layer.shadowPath = UIBezierPath(roundedRect: bounds, cornerRadius: layer.cornerRadius).cgPath
     }
     override func draw(_ rect: CGRect) {
+        // Clip the complete bar surface and its custom-drawn segments to the
+        // same capsule silhouette as the search bar.
+        let context = UIGraphicsGetCurrentContext()
+        let outerPath = UIBezierPath(roundedRect: bounds, cornerRadius: bounds.height / 2)
+        context?.saveGState()
+        outerPath.addClip()
+        UIColor.white.setFill()
+        outerPath.fill()
+
         let gap: CGFloat = 3
         let segmentWidth = (bounds.width - 2 * gap) / 3
         let selectedRect = CGRect(x: gap + CGFloat(selectedIndex) * segmentWidth, y: 3, width: segmentWidth, height: bounds.height - 6)
         UIColor(white: 0.92, alpha: 1).setFill()
-        UIBezierPath(roundedRect: selectedRect, cornerRadius: 17).fill()
+        UIBezierPath(roundedRect: selectedRect, cornerRadius: selectedRect.height / 2).fill()
         for index in 0..<3 {
             let title = labels[index] as NSString
             let font = UIFont.systemFont(ofSize: 15, weight: .medium)
@@ -694,6 +709,7 @@ private final class ChatFolderBar: UIView {
                 badgeText.draw(at: CGPoint(x: badge.midX - badgeSize.width / 2, y: badge.midY - badgeSize.height / 2 - 1), withAttributes: badgeAttrs)
             }
         }
+        context?.restoreGState()
     }
 }
 
@@ -705,12 +721,12 @@ private final class ChatRowCell: UITableViewCell {
     private let youLabel = UILabel()
     private let designerPreviewLabel = UILabel()
     private let timeLabel = UILabel()
-    private let sentMark = UILabel()
+    private let sentMark = UIImageView()
     private let separator = UIView()
     private let previewThumbnail = VideoPreviewThumbnail()
     private let designerThumbnail = VideoPreviewThumbnail()
     private let dust = MessageDustPreview()
-    private let designerEmoji = UILabel()
+    private let designerEmoji = UIImageView(image: UIImage(systemName: "arrowshape.turn.up.right.fill"))
     private var separatorLeading: NSLayoutConstraint!
     private var previewLeading: NSLayoutConstraint!
 
@@ -735,13 +751,10 @@ private final class ChatRowCell: UITableViewCell {
         timeLabel.font = .systemFont(ofSize: 14, weight: .regular)
         timeLabel.textColor = UIColor(red: 0.557, green: 0.557, blue: 0.576, alpha: 1)
         timeLabel.textAlignment = .right
-        sentMark.font = .systemFont(ofSize: 18, weight: .medium)
-        sentMark.textColor = UIColor(red: 0.04, green: 0.75, blue: 0.15, alpha: 1)
+        sentMark.contentMode = .scaleAspectFit
         separator.backgroundColor = UIColor(white: 0.87, alpha: 1)
-        designerEmoji.text = "↪"
-        designerEmoji.font = .systemFont(ofSize: 19, weight: .medium)
-        designerEmoji.textColor = UIColor(white: 0.57, alpha: 1)
-        designerEmoji.textAlignment = .center
+        designerEmoji.tintColor = UIColor(white: 0.57, alpha: 1)
+        designerEmoji.contentMode = .scaleAspectFit
         separatorLeading = separator.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 86)
         previewLeading = previewLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 86)
         NSLayoutConstraint.activate([
@@ -750,7 +763,7 @@ private final class ChatRowCell: UITableViewCell {
             nameLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 86), nameLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
             nameLabel.heightAnchor.constraint(equalToConstant: 21),
             timeLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16), timeLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 9), timeLabel.heightAnchor.constraint(equalToConstant: 20),
-            sentMark.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -3), sentMark.centerYAnchor.constraint(equalTo: timeLabel.centerYAnchor),
+            sentMark.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -3), sentMark.centerYAnchor.constraint(equalTo: timeLabel.centerYAnchor), sentMark.widthAnchor.constraint(equalToConstant: 28), sentMark.heightAnchor.constraint(equalToConstant: 20),
             separatorLeading, separator.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16), separator.bottomAnchor.constraint(equalTo: contentView.bottomAnchor), separator.heightAnchor.constraint(equalToConstant: 0.5),
             previewThumbnail.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 86), previewThumbnail.centerYAnchor.constraint(equalTo: contentView.centerYAnchor, constant: 1), previewThumbnail.widthAnchor.constraint(equalToConstant: 18), previewThumbnail.heightAnchor.constraint(equalToConstant: 18),
             designerEmoji.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 86), designerEmoji.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 49), designerEmoji.widthAnchor.constraint(equalToConstant: 16), designerEmoji.heightAnchor.constraint(equalToConstant: 20),
@@ -778,7 +791,8 @@ private final class ChatRowCell: UITableViewCell {
         isUserInteractionEnabled = true
         nameLabel.text = chat.name
         timeLabel.text = chat.time
-        sentMark.text = chat.sent ? "✓" : ""
+        // Match Telegram's thin green sent/read ticks with crisp vector paths.
+        sentMark.image = chat.sent ? Self.tickImage(double: false) : nil
         sentMark.isHidden = !chat.sent
         avatar.kind = chat.avatar
         switch chat.preview {
@@ -814,6 +828,29 @@ private final class ChatRowCell: UITableViewCell {
         previewLabel.textColor = UIColor(red: 0.553, green: 0.553, blue: 0.576, alpha: 1)
         previewLabel.font = .systemFont(ofSize: 15)
         separatorLeading.constant = isLast ? 0 : 86
+    }
+
+    private static func tickImage(double: Bool) -> UIImage {
+        let size = CGSize(width: double ? 28 : 14, height: 20)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { _ in
+            let color = UIColor(red: 0.04, green: 0.75, blue: 0.15, alpha: 1)
+            let paths: [[CGPoint]] = double
+                ? [[CGPoint(x: 1, y: 10), CGPoint(x: 5.5, y: 15), CGPoint(x: 15, y: 3)],
+                   [CGPoint(x: 8, y: 10), CGPoint(x: 12.5, y: 15), CGPoint(x: 25.5, y: 2)]]
+                : [[CGPoint(x: 1, y: 10), CGPoint(x: 5.5, y: 15), CGPoint(x: 15, y: 3)]]
+            color.setStroke()
+            for points in paths {
+                let path = UIBezierPath()
+                path.move(to: points[0])
+                path.addLine(to: points[1])
+                path.addLine(to: points[2])
+                path.lineWidth = 2.4
+                path.lineCapStyle = .round
+                path.lineJoinStyle = .round
+                path.stroke()
+            }
+        }
     }
 }
 
@@ -984,6 +1021,8 @@ private final class FloatingChatTabs: UIView {
 private final class DeleteUndoBanner: UIView {
     var onUndo: (() -> Void)?
     private let countdown = UILabel()
+    private let countdownTrack = CAShapeLayer()
+    private let countdownProgress = CAShapeLayer()
     private let message = UILabel()
     private let undoButton = UIButton(type: .system)
 
@@ -996,11 +1035,15 @@ private final class DeleteUndoBanner: UIView {
         countdown.textColor = .white
         countdown.font = .systemFont(ofSize: 16, weight: .regular)
         countdown.textAlignment = .center
-        countdown.layer.borderColor = UIColor.white.cgColor
-        countdown.layer.borderWidth = 1.5
-        countdown.layer.cornerRadius = 12
         countdown.translatesAutoresizingMaskIntoConstraints = false
         addSubview(countdown)
+        [countdownTrack, countdownProgress].forEach {
+            $0.fillColor = UIColor.clear.cgColor
+            $0.strokeColor = UIColor.white.cgColor
+            $0.lineWidth = 1.5
+            $0.lineCap = .round
+            layer.addSublayer($0)
+        }
 
         message.textColor = .white
         message.font = .systemFont(ofSize: 15, weight: .semibold)
@@ -1018,7 +1061,7 @@ private final class DeleteUndoBanner: UIView {
         NSLayoutConstraint.activate([
             countdown.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
             countdown.centerYAnchor.constraint(equalTo: centerYAnchor),
-            countdown.widthAnchor.constraint(equalToConstant: 24), countdown.heightAnchor.constraint(equalToConstant: 24),
+            countdown.widthAnchor.constraint(equalToConstant: 28), countdown.heightAnchor.constraint(equalToConstant: 28),
             message.leadingAnchor.constraint(equalTo: countdown.trailingAnchor, constant: 12),
             message.centerYAnchor.constraint(equalTo: centerYAnchor),
             undoButton.leadingAnchor.constraint(greaterThanOrEqualTo: message.trailingAnchor, constant: 6),
@@ -1029,6 +1072,31 @@ private final class DeleteUndoBanner: UIView {
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        let circleRect = CGRect(x: 12, y: (bounds.height - 28) / 2, width: 28, height: 28)
+        let path = UIBezierPath(arcCenter: CGPoint(x: circleRect.midX, y: circleRect.midY), radius: 12.4,
+                                startAngle: -.pi / 2, endAngle: 3 * .pi / 2, clockwise: true).cgPath
+        countdownTrack.frame = bounds
+        countdownTrack.path = path
+        countdownTrack.opacity = 0.28
+        countdownProgress.frame = bounds
+        countdownProgress.path = path
+    }
+
+    func startCountdown(duration: TimeInterval) {
+        countdownProgress.removeAnimation(forKey: "countdown")
+        countdownProgress.strokeStart = 0
+        let animation = CABasicAnimation(keyPath: "strokeStart")
+        animation.fromValue = 0
+        animation.toValue = 1
+        animation.duration = duration
+        animation.timingFunction = CAMediaTimingFunction(name: .linear)
+        animation.fillMode = .forwards
+        animation.isRemovedOnCompletion = false
+        countdownProgress.add(animation, forKey: "countdown")
+    }
 
     func set(secondsRemaining: Int, message text: String) {
         countdown.text = "\(secondsRemaining)"
