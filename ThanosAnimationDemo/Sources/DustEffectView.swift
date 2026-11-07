@@ -20,9 +20,54 @@ final class DustEffectView: UIView, MTKViewDelegate {
         var readyForRendering = false
 
         init?(frame: CGRect, image: UIImage, device: MTLDevice, onFirstFrame: (() -> Void)?) {
-            guard let cgImage = image.cgImage,
-                  let texture = try? MTKTextureLoader(device: device).newTexture(
-                    cgImage: cgImage, options: [.SRGB: false as NSNumber]) else { return nil }
+            guard let cgImage = image.cgImage else {
+                NSLog("DustEffect fallback: chat snapshot has no CGImage backing.")
+                return nil
+            }
+            let width = cgImage.width
+            let height = cgImage.height
+            let bytesPerRow = width * 4
+            var pixels = [UInt8](repeating: 0, count: bytesPerRow * height)
+            let colorSpace = CGColorSpaceCreateDeviceRGB()
+            let bitmapInfo = CGBitmapInfo.byteOrder32Big.rawValue | CGImageAlphaInfo.premultipliedLast.rawValue
+            let didRenderPixels = pixels.withUnsafeMutableBytes { rawBuffer -> Bool in
+                guard let bitmap = CGContext(
+                    data: rawBuffer.baseAddress,
+                    width: width,
+                    height: height,
+                    bitsPerComponent: 8,
+                    bytesPerRow: bytesPerRow,
+                    space: colorSpace,
+                    bitmapInfo: bitmapInfo
+                ) else { return false }
+                bitmap.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+                return true
+            }
+            guard didRenderPixels else {
+                NSLog("DustEffect fallback: could not normalize chat snapshot pixels.")
+                return nil
+            }
+            let descriptor = MTLTextureDescriptor.texture2DDescriptor(
+                pixelFormat: .rgba8Unorm,
+                width: width,
+                height: height,
+                mipmapped: false
+            )
+            descriptor.usage = .shaderRead
+            descriptor.storageMode = .shared
+            guard let texture = device.makeTexture(descriptor: descriptor) else {
+                NSLog("DustEffect fallback: could not create an RGBA Metal texture (%d×%d).", width, height)
+                return nil
+            }
+            pixels.withUnsafeBytes { bytes in
+                guard let baseAddress = bytes.baseAddress else { return }
+                texture.replace(
+                    region: MTLRegionMake2D(0, 0, width, height),
+                    mipmapLevel: 0,
+                    withBytes: baseAddress,
+                    bytesPerRow: bytesPerRow
+                )
+            }
             // Use a 2× finer grid in each direction: four times as many
             // particles, each covering half the width and height of the old cell.
             let particleDensity: CGFloat = 2
@@ -30,7 +75,10 @@ final class DustEffectView: UIView, MTKViewDelegate {
             let rows = max(1, Int((frame.height * particleDensity).rounded(.down)))
             let count = columns * rows
             // The Metal Particle struct is 8 floats = 32 bytes (including packed_float2 fields).
-            guard let buffer = device.makeBuffer(length: count * 32, options: .storageModePrivate) else { return nil }
+            guard let buffer = device.makeBuffer(length: count * 32, options: .storageModePrivate) else {
+                NSLog("DustEffect fallback: could not allocate particle buffer (%d particles, %d bytes).", count, count * 32)
+                return nil
+            }
             self.frame = frame
             self.texture = texture
             self.buffer = buffer
@@ -61,6 +109,8 @@ final class DustEffectView: UIView, MTKViewDelegate {
     private var initializePipeline: MTLComputePipelineState?
     private var updatePipeline: MTLComputePipelineState?
     private var isPreparing = false
+    private var didAttemptPreparation = false
+    private var preparationFailed = false
     private var items: [Item] = []
     private var previousFrameTime: CFTimeInterval?
     private var lastTimeStep: Float = 0
@@ -101,12 +151,17 @@ final class DustEffectView: UIView, MTKViewDelegate {
     func prepare() {
         guard !isReady, !isPreparing, let device else { return }
         isPreparing = true
+        didAttemptPreparation = true
         DispatchQueue.global(qos: .utility).async { [weak self, device] in
             let pipelines = Self.makePipelines(device: device)
             DispatchQueue.main.async {
                 guard let self else { return }
                 self.isPreparing = false
-                guard let pipelines else { return }
+                guard let pipelines else {
+                    self.preparationFailed = true
+                    return
+                }
+                self.preparationFailed = false
                 self.commandQueue = pipelines.commandQueue
                 self.drawPipeline = pipelines.draw
                 self.initializePipeline = pipelines.initialize
@@ -169,13 +224,22 @@ final class DustEffectView: UIView, MTKViewDelegate {
         metalView != nil && drawPipeline != nil && initializePipeline != nil && updatePipeline != nil
     }
 
+    var warmupStatusText: String {
+        if isReady { return "Готов" }
+        if isPreparing { return "Прогревается…" }
+        if device == nil { return "Недоступен: нет Metal GPU" }
+        if preparationFailed { return "Ошибка подготовки Metal" }
+        if didAttemptPreparation { return "Ожидает повторной подготовки" }
+        return "Не запущен"
+    }
+
     /// The `frame` must be in this view's point coordinate system; the `image` is
     /// a pixel-accurate snapshot of that same rectangle.
     @discardableResult
     func dissolve(image: UIImage, at frame: CGRect, onFirstFrame: (() -> Void)? = nil) -> Bool {
         guard let device, isReady, !frame.isEmpty else {
             prepare()
-            NSLog("Telegram DustEffect could not start: renderer ready=%@, frame=%@.", String(isReady), String(describing: frame))
+            NSLog("DustEffect fallback: rendererReady=%@ deviceAvailable=%@ frame=%@.", String(isReady), String(self.device != nil), String(describing: frame))
             onUnavailable?()
             return false
         }
@@ -196,6 +260,7 @@ final class DustEffectView: UIView, MTKViewDelegate {
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
 
     func draw(in view: MTKView) {
+        let cpuFrameStart = CACurrentMediaTime()
         guard let queue = commandQueue,
               let initPipeline = initializePipeline,
               let updatePipeline = updatePipeline,
@@ -300,6 +365,11 @@ final class DustEffectView: UIView, MTKViewDelegate {
                     firstFrameCallbacks.forEach { $0() }
                 }
             }
+        }
+        PerformanceTelemetry.shared.updateCPU(milliseconds: (CACurrentMediaTime() - cpuFrameStart) * 1_000)
+        commandBuffer.addCompletedHandler { buffer in
+            let gpuMilliseconds = max(0, buffer.gpuEndTime - buffer.gpuStartTime) * 1_000
+            PerformanceTelemetry.shared.updateGPU(milliseconds: gpuMilliseconds)
         }
         commandBuffer.commit()
 

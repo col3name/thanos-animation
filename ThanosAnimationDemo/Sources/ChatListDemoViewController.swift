@@ -1,4 +1,7 @@
 import UIKit
+import Metal
+import QuartzCore
+import Darwin
 
 /// Telegram chat-list recreation with a local Thanos-style dissolve on deletion.
 final class ChatListDemoViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
@@ -37,6 +40,7 @@ final class ChatListDemoViewController: UIViewController, UITableViewDataSource,
     private let utilityPill = UIView()
     private let composeButton = UIButton(type: .system)
     private let floatingTabs = FloatingChatTabs()
+    private let performanceHUD = PerformanceHUD()
     private var undoChat: Chat?
     private var undoChatIndex: Int?
     private var undoTimer: Timer?
@@ -58,19 +62,17 @@ final class ChatListDemoViewController: UIViewController, UITableViewDataSource,
         configureBottomTabs()
         chats = initialChats
         updateEmptyState()
+        configurePerformanceHUD()
     }
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         guard !hasScheduledDustWarmup else { return }
         hasScheduledDustWarmup = true
-        // Give the first screen a quiet moment before creating the renderer and warming Metal.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-            guard let self, self.view.window != nil else { return }
-            self.configureDustEffect()
-            self.view.layoutIfNeeded()
-            self.dustEffectView.prepare()
-        }
+        // Start after the first screen is visible. DustEffectView compiles its
+        // Metal pipelines on a background queue, so this does not block display.
+        configureDustEffect()
+        dustEffectView.prepare()
     }
 
     private func configureDustEffect() {
@@ -100,6 +102,7 @@ final class ChatListDemoViewController: UIViewController, UITableViewDataSource,
         editButton.setTitleColor(.black, for: .normal)
         editButton.titleLabel?.font = .systemFont(ofSize: 16, weight: .medium)
         styleWhitePill(editButton, radius: 22)
+        applyLiquidGlass(to: editButton, cornerRadius: 22)
         editButton.addTarget(self, action: #selector(editTapped), for: .touchUpInside)
         editButton.translatesAutoresizingMaskIntoConstraints = false
         titleBar.addSubview(editButton)
@@ -131,6 +134,7 @@ final class ChatListDemoViewController: UIViewController, UITableViewDataSource,
         utilityPill.layer.shadowOpacity = 1
         utilityPill.layer.shadowRadius = 12
         utilityPill.layer.shadowOffset = CGSize(width: 0, height: 4)
+        applyLiquidGlass(to: utilityPill, cornerRadius: 22)
         utilityPill.translatesAutoresizingMaskIntoConstraints = false
         titleBar.addSubview(utilityPill)
         NSLayoutConstraint.activate([
@@ -165,9 +169,13 @@ final class ChatListDemoViewController: UIViewController, UITableViewDataSource,
         composeButton.layer.shadowOpacity = 1
         composeButton.layer.shadowRadius = 9
         composeButton.layer.shadowOffset = CGSize(width: 0, height: 3)
+        applyLiquidGlass(to: composeButton, cornerRadius: 22)
         composeButton.translatesAutoresizingMaskIntoConstraints = false
         composeButton.addTarget(self, action: #selector(composeTapped), for: .touchUpInside)
         titleBar.addSubview(composeButton)
+        if let composeImageView = composeButton.imageView {
+            composeButton.bringSubviewToFront(composeImageView)
+        }
         NSLayoutConstraint.activate([
             composeButton.trailingAnchor.constraint(equalTo: titleBar.trailingAnchor, constant: -16), composeButton.centerYAnchor.constraint(equalTo: titleBar.centerYAnchor), composeButton.widthAnchor.constraint(equalToConstant: 44), composeButton.heightAnchor.constraint(equalToConstant: 44),
             utilityPill.trailingAnchor.constraint(equalTo: composeButton.leadingAnchor, constant: -10)
@@ -275,7 +283,33 @@ final class ChatListDemoViewController: UIViewController, UITableViewDataSource,
             floatingTabs.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -22),
             floatingTabs.widthAnchor.constraint(equalToConstant: 188), floatingTabs.heightAnchor.constraint(equalToConstant: 61)
         ])
-        floatingTabs.onSettings = { [weak self] in self?.tabTapped() }
+        floatingTabs.onSettings = { [weak self] in self?.openCachePage() }
+    }
+
+    private func openCachePage() {
+        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+        let cachePage = CacheContentsViewController(
+            warmupStatusProvider: { [weak self] in self?.dustEffectView.warmupStatusText ?? "Недоступен" },
+            performanceEnabled: performanceHUD.isEnabled
+        ) { [weak self] enabled in
+            self?.performanceHUD.isEnabled = enabled
+            UserDefaults.standard.set(enabled, forKey: PerformanceHUD.defaultsKey)
+        }
+        let navigationController = UINavigationController(rootViewController: cachePage)
+        navigationController.modalPresentationStyle = .fullScreen
+        present(navigationController, animated: true)
+    }
+
+    private func configurePerformanceHUD() {
+        performanceHUD.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(performanceHUD)
+        NSLayoutConstraint.activate([
+            performanceHUD.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 4),
+            performanceHUD.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -12),
+            performanceHUD.widthAnchor.constraint(equalToConstant: 176),
+            performanceHUD.heightAnchor.constraint(equalToConstant: 118)
+        ])
+        performanceHUD.isEnabled = UserDefaults.standard.bool(forKey: PerformanceHUD.defaultsKey)
     }
 
     private func styleWhitePill(_ view: UIView, radius: CGFloat) {
@@ -286,6 +320,26 @@ final class ChatListDemoViewController: UIViewController, UITableViewDataSource,
         view.layer.shadowOpacity = 1
         view.layer.shadowRadius = 12
         view.layer.shadowOffset = CGSize(width: 0, height: 4)
+    }
+
+    private func applyLiquidGlass(to view: UIView, cornerRadius: CGFloat) {
+        guard #available(iOS 26.0, *) else { return }
+        let glassEffect = UIGlassEffect(style: .regular)
+        glassEffect.tintColor = view.backgroundColor
+        let glass = UIVisualEffectView(effect: glassEffect)
+        glass.translatesAutoresizingMaskIntoConstraints = false
+        glass.isUserInteractionEnabled = false
+        glass.layer.cornerRadius = cornerRadius
+        glass.layer.cornerCurve = .continuous
+        glass.clipsToBounds = true
+        view.insertSubview(glass, at: 0)
+        NSLayoutConstraint.activate([
+            glass.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            glass.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            glass.topAnchor.constraint(equalTo: view.topAnchor),
+            glass.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+        view.backgroundColor = .clear
     }
 
     private func shieldPowerImage() -> UIImage? {
@@ -603,7 +657,6 @@ final class ChatListDemoViewController: UIViewController, UITableViewDataSource,
     @objc private func editTapped() { UIImpactFeedbackGenerator(style: .soft).impactOccurred() }
     @objc private func composeTapped() { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
     @objc private func topUtilityTapped() { UIImpactFeedbackGenerator(style: .soft).impactOccurred() }
-    private func tabTapped() { UIImpactFeedbackGenerator(style: .soft).impactOccurred() }
 }
 
 private final class HeaderAvatarStack: UIView {
@@ -763,7 +816,7 @@ private final class ChatRowCell: UITableViewCell {
             nameLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 86), nameLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
             nameLabel.heightAnchor.constraint(equalToConstant: 21),
             timeLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16), timeLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 9), timeLabel.heightAnchor.constraint(equalToConstant: 20),
-            sentMark.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -3), sentMark.centerYAnchor.constraint(equalTo: timeLabel.centerYAnchor), sentMark.widthAnchor.constraint(equalToConstant: 28), sentMark.heightAnchor.constraint(equalToConstant: 20),
+            sentMark.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -3), sentMark.centerYAnchor.constraint(equalTo: timeLabel.centerYAnchor), sentMark.widthAnchor.constraint(equalToConstant: 20), sentMark.heightAnchor.constraint(equalToConstant: 16),
             separatorLeading, separator.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16), separator.bottomAnchor.constraint(equalTo: contentView.bottomAnchor), separator.heightAnchor.constraint(equalToConstant: 0.5),
             previewThumbnail.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 86), previewThumbnail.centerYAnchor.constraint(equalTo: contentView.centerYAnchor, constant: 1), previewThumbnail.widthAnchor.constraint(equalToConstant: 18), previewThumbnail.heightAnchor.constraint(equalToConstant: 18),
             designerEmoji.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 86), designerEmoji.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 49), designerEmoji.widthAnchor.constraint(equalToConstant: 16), designerEmoji.heightAnchor.constraint(equalToConstant: 20),
@@ -1104,4 +1157,448 @@ private final class DeleteUndoBanner: UIView {
     }
 
     @objc private func undoTapped() { onUndo?() }
+}
+
+private final class CacheContentsViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
+    private struct Entry {
+        let name: String
+        let detail: String
+        let size: Int64
+        let fileURL: URL?
+    }
+
+    private let tableView = UITableView(frame: .zero, style: .insetGrouped)
+    private let summaryLabel = UILabel()
+    private let dustStatusLabel = UILabel()
+    private let performanceSwitch = UISwitch()
+    private let clearButton = UIButton(type: .system)
+    private let warmupStatusProvider: () -> String
+    private let performanceEnabled: Bool
+    private let onPerformanceToggle: (Bool) -> Void
+    private var statusTimer: Timer?
+    private var entries: [Entry] = []
+    private var totalBytes: Int64 = 0
+
+    init(warmupStatusProvider: @escaping () -> String, performanceEnabled: Bool, onPerformanceToggle: @escaping (Bool) -> Void) {
+        self.warmupStatusProvider = warmupStatusProvider
+        self.performanceEnabled = performanceEnabled
+        self.onPerformanceToggle = onPerformanceToggle
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        title = "Кэш приложения"
+        view.backgroundColor = .systemGroupedBackground
+        navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .close, target: self, action: #selector(close))
+
+        summaryLabel.font = .systemFont(ofSize: 15, weight: .regular)
+        summaryLabel.textColor = .secondaryLabel
+        summaryLabel.numberOfLines = 0
+        summaryLabel.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(summaryLabel)
+
+        dustStatusLabel.font = .systemFont(ofSize: 15, weight: .medium)
+        dustStatusLabel.textColor = .label
+        dustStatusLabel.numberOfLines = 0
+        dustStatusLabel.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(dustStatusLabel)
+
+        let performanceLabel = UILabel()
+        performanceLabel.text = "Показывать производительность"
+        performanceLabel.font = .systemFont(ofSize: 15, weight: .medium)
+        performanceLabel.translatesAutoresizingMaskIntoConstraints = false
+        performanceSwitch.isOn = performanceEnabled
+        performanceSwitch.addTarget(self, action: #selector(performanceSwitchChanged), for: .valueChanged)
+        performanceSwitch.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(performanceLabel)
+        view.addSubview(performanceSwitch)
+
+        tableView.dataSource = self
+        tableView.delegate = self
+        tableView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(tableView)
+
+        clearButton.setTitle("Очистить все кэши", for: .normal)
+        clearButton.setTitleColor(.white, for: .normal)
+        clearButton.titleLabel?.font = .systemFont(ofSize: 17, weight: .semibold)
+        clearButton.backgroundColor = .systemRed
+        clearButton.layer.cornerRadius = 14
+        clearButton.addTarget(self, action: #selector(clearAllCaches), for: .touchUpInside)
+        clearButton.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(clearButton)
+
+        NSLayoutConstraint.activate([
+            summaryLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
+            summaryLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            summaryLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            performanceLabel.topAnchor.constraint(equalTo: summaryLabel.bottomAnchor, constant: 16),
+            performanceLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            performanceLabel.centerYAnchor.constraint(equalTo: performanceSwitch.centerYAnchor),
+            performanceSwitch.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            performanceSwitch.topAnchor.constraint(equalTo: summaryLabel.bottomAnchor, constant: 8),
+            dustStatusLabel.topAnchor.constraint(equalTo: performanceSwitch.bottomAnchor, constant: 12),
+            dustStatusLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            dustStatusLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            tableView.topAnchor.constraint(equalTo: dustStatusLabel.bottomAnchor, constant: 8),
+            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            tableView.bottomAnchor.constraint(equalTo: clearButton.topAnchor, constant: -12),
+            clearButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            clearButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            clearButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
+            clearButton.heightAnchor.constraint(equalToConstant: 52)
+        ])
+        reloadCacheEntries()
+        updateDustStatus()
+        statusTimer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: true) { [weak self] _ in
+            self?.updateDustStatus()
+        }
+    }
+
+    deinit { statusTimer?.invalidate() }
+
+    private func updateDustStatus() {
+        dustStatusLabel.text = "DustEffectView · \(warmupStatusProvider())"
+    }
+
+    @objc private func performanceSwitchChanged() {
+        onPerformanceToggle(performanceSwitch.isOn)
+    }
+
+    private func reloadCacheEntries() {
+        entries.removeAll()
+        totalBytes = 0
+        let fileManager = FileManager.default
+        if let cachesURL = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first,
+           let enumerator = fileManager.enumerator(at: cachesURL, includingPropertiesForKeys: [.isRegularFileKey, .fileSizeKey]) {
+            for case let url as URL in enumerator {
+                guard let values = try? url.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey]), values.isRegularFile == true else { continue }
+                let size = Int64(values.fileSize ?? 0)
+                totalBytes += size
+                entries.append(Entry(name: url.lastPathComponent, detail: url.deletingLastPathComponent().path, size: size, fileURL: url))
+            }
+        }
+
+        let urlCache = URLCache.shared
+        let urlCacheSize = Int64(urlCache.currentDiskUsage + urlCache.currentMemoryUsage)
+        entries.append(Entry(
+            name: "URLCache",
+            detail: "Память: \(ByteCountFormatter.string(fromByteCount: Int64(urlCache.currentMemoryUsage), countStyle: .file)); диск: \(ByteCountFormatter.string(fromByteCount: Int64(urlCache.currentDiskUsage), countStyle: .file))",
+            size: urlCacheSize,
+            fileURL: nil
+        ))
+        totalBytes += urlCacheSize
+        entries.sort {
+            if $0.name == "URLCache" { return $1.name != "URLCache" }
+            if $1.name == "URLCache" { return false }
+            return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+        }
+        summaryLabel.text = "Найдено элементов: \(entries.count)\nОбщий размер: \(ByteCountFormatter.string(fromByteCount: totalBytes, countStyle: .file))"
+        clearButton.isEnabled = totalBytes > 0
+        clearButton.alpha = clearButton.isEnabled ? 1 : 0.55
+        tableView.reloadData()
+    }
+
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int { entries.count }
+
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = UITableViewCell(style: .subtitle, reuseIdentifier: nil)
+        let entry = entries[indexPath.row]
+        cell.textLabel?.text = entry.name
+        cell.detailTextLabel?.text = "\(entry.detail) · \(ByteCountFormatter.string(fromByteCount: entry.size, countStyle: .file))"
+        cell.detailTextLabel?.textColor = .secondaryLabel
+        cell.detailTextLabel?.numberOfLines = 2
+        cell.accessoryType = .disclosureIndicator
+        return cell
+    }
+
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: true)
+        let entry = entries[indexPath.row]
+        let viewer = CacheFileViewerViewController(name: entry.name, fileURL: entry.fileURL, size: entry.size, detail: entry.detail)
+        navigationController?.pushViewController(viewer, animated: true)
+    }
+
+    @objc private func clearAllCaches() {
+        URLCache.shared.removeAllCachedResponses()
+        if let cachesURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first,
+           let cachedItems = try? FileManager.default.contentsOfDirectory(at: cachesURL, includingPropertiesForKeys: nil) {
+            for itemURL in cachedItems { try? FileManager.default.removeItem(at: itemURL) }
+        }
+        reloadCacheEntries()
+    }
+
+    @objc private func close() { dismiss(animated: true) }
+}
+
+private final class CacheFileViewerViewController: UIViewController {
+    private let name: String
+    private let fileURL: URL?
+    private let fileSize: Int64
+    private let detail: String
+    private let textView = UITextView()
+
+    init(name: String, fileURL: URL?, size: Int64, detail: String) {
+        self.name = name
+        self.fileURL = fileURL
+        self.fileSize = size
+        self.detail = detail
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        title = name
+        view.backgroundColor = .systemBackground
+        textView.isEditable = false
+        textView.alwaysBounceVertical = true
+        textView.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
+        textView.backgroundColor = .clear
+        textView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(textView)
+        NSLayoutConstraint.activate([
+            textView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 12),
+            textView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -12),
+            textView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
+            textView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -8)
+        ])
+        textView.text = contents()
+    }
+
+    private func contents() -> String {
+        guard let fileURL else {
+            return "URLCache — кэш сетевых ответов, управляемый iOS.\n\nРазмер в памяти и на диске: \(ByteCountFormatter.string(fromByteCount: fileSize, countStyle: .file)).\n\nURLCache не предоставляет приложению список отдельных файлов или API для чтения их необработанного содержимого."
+        }
+        do {
+            let data = try Data(contentsOf: fileURL, options: [.mappedIfSafe])
+            let maxBytes = 1_048_576
+            let shownData = data.prefix(maxBytes)
+            let wasTruncated = data.count > maxBytes
+            if let string = String(data: shownData, encoding: .utf8), Self.isMostlyReadable(string) {
+                return string + (wasTruncated ? "\n\n… содержимое сокращено до первых 1 МБ из \(ByteCountFormatter.string(fromByteCount: fileSize, countStyle: .file))." : "")
+            }
+            let binaryInfo = Self.binaryAnalysis(data: data, name: name)
+            var lines: [String] = []
+            let bytes = Array(shownData)
+            for offset in stride(from: 0, to: bytes.count, by: 16) {
+                let end = min(offset + 16, bytes.count)
+                let row = bytes[offset..<end]
+                let hex = row.map { String(format: "%02X", $0) }.joined(separator: " ")
+                let hexColumn = hex.padding(toLength: 47, withPad: " ", startingAt: 0)
+                let ascii = row.map { byte -> Character in
+                    (byte >= 32 && byte < 127) ? Character(UnicodeScalar(byte)) : "."
+                }
+                let offsetText = String(offset, radix: 16).uppercased().padding(toLength: 8, withPad: "0", startingAt: 0)
+                lines.append("\(offsetText)  \(hexColumn)  \(String(ascii))")
+            }
+            if wasTruncated {
+                lines.append("\n… показаны первые 1 МБ из \(ByteCountFormatter.string(fromByteCount: fileSize, countStyle: .file)).")
+            }
+            return binaryInfo + "\n\nБинарный файл · \(ByteCountFormatter.string(fromByteCount: fileSize, countStyle: .file))\n\(detail)\n\n" + lines.joined(separator: "\n")
+        } catch {
+            return "Не удалось прочитать файл.\n\(error.localizedDescription)"
+        }
+    }
+
+    private static func isMostlyReadable(_ string: String) -> Bool {
+        string.unicodeScalars.allSatisfy { scalar in
+            CharacterSet.controlCharacters.contains(scalar) == false || scalar == "\n" || scalar == "\r" || scalar == "\t"
+        }
+    }
+
+    private static func binaryAnalysis(data: Data, name: String) -> String {
+        let header = data.prefix(16).map { String(format: "%02X", $0) }.joined(separator: " ")
+        let isMetalFunctionIndex = name == "functions.list" && data.starts(with: [0x45, 0x36, 0x27, 0x18])
+        var result: String
+        if isMetalFunctionIndex {
+            result = "АНАЛИЗ: индекс кэша функций Metal\nЭто служебный бинарный индекс для ускорения работы GPU. Исходный MSL-код в этом файле не хранится; декомпилировать его в исходный шейдер нельзя."
+        } else if name == "functions.data" {
+            result = "АНАЛИЗ: данные кэша функций Metal\nЭто бинарные данные графического кэша. Они не являются исходным кодом приложения или шейдера."
+        } else if name.hasSuffix(".dyld4") {
+            result = "АНАЛИЗ: кэш загрузчика dyld4\nСлужебные данные iOS для ускорения запуска приложения; это не исходный код приложения."
+        } else {
+            result = "АНАЛИЗ: неизвестный бинарный формат\nЗаголовок файла: \(header.isEmpty ? "пустой файл" : header)"
+        }
+
+        let strings = readableStrings(in: data).prefix(80)
+        if !strings.isEmpty {
+            result += "\n\nНайденные читаемые строки:\n" + strings.joined(separator: "\n")
+        } else {
+            result += "\n\nЧитаемых строк не найдено."
+        }
+        return result
+    }
+
+    private static func readableStrings(in data: Data) -> [String] {
+        var found: [String] = []
+        var current: [UInt8] = []
+        func flush() {
+            guard current.count >= 4 else { current.removeAll(keepingCapacity: true); return }
+            let value = String(decoding: current, as: UTF8.self)
+            if !found.contains(value) { found.append(value) }
+            current.removeAll(keepingCapacity: true)
+        }
+        for byte in data {
+            if (32...126).contains(byte) {
+                current.append(byte)
+            } else {
+                flush()
+            }
+        }
+        flush()
+        return found
+    }
+}
+
+final class PerformanceTelemetry {
+    static let shared = PerformanceTelemetry()
+    private let lock = NSLock()
+    private var cpuMilliseconds: Double = 0
+    private var gpuMilliseconds: Double = 0
+
+    func updateCPU(milliseconds: Double) {
+        lock.lock(); cpuMilliseconds = milliseconds; lock.unlock()
+    }
+
+    func updateGPU(milliseconds: Double) {
+        lock.lock(); gpuMilliseconds = milliseconds; lock.unlock()
+    }
+
+    func snapshot() -> (cpu: Double, gpu: Double) {
+        lock.lock(); defer { lock.unlock() }
+        return (cpuMilliseconds, gpuMilliseconds)
+    }
+}
+
+private final class PerformanceHUD: UIView {
+    static let defaultsKey = "showPerformanceHUD"
+    var isEnabled = false {
+        didSet {
+            isHidden = !isEnabled
+            if isEnabled { startUpdates() } else { stopUpdates() }
+        }
+    }
+
+    private let metricsLabel = UILabel()
+    private let chart = PerformanceHUDChart()
+    private let device = MTLCreateSystemDefaultDevice()
+    private var displayLink: CADisplayLink?
+    private var lastFPSWindow: CFTimeInterval = 0
+    private var frameCount = 0
+    private var currentFPS: Double = 0
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        backgroundColor = UIColor(white: 0.08, alpha: 0.82)
+        layer.cornerRadius = 10
+        layer.cornerCurve = .continuous
+        layer.borderWidth = 1
+        layer.borderColor = UIColor.white.withAlphaComponent(0.35).cgColor
+        clipsToBounds = true
+
+        metricsLabel.font = .monospacedSystemFont(ofSize: 9, weight: .medium)
+        metricsLabel.textColor = .white
+        metricsLabel.numberOfLines = 0
+        metricsLabel.translatesAutoresizingMaskIntoConstraints = false
+        chart.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(metricsLabel)
+        addSubview(chart)
+        NSLayoutConstraint.activate([
+            metricsLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 7),
+            metricsLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -7),
+            metricsLabel.topAnchor.constraint(equalTo: topAnchor, constant: 5),
+            chart.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 7),
+            chart.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -7),
+            chart.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -6),
+            chart.heightAnchor.constraint(equalToConstant: 25)
+        ])
+        isHidden = true
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    private func startUpdates() {
+        guard displayLink == nil else { return }
+        lastFPSWindow = CACurrentMediaTime()
+        displayLink = CADisplayLink(target: self, selector: #selector(tick(_:)))
+        displayLink?.add(to: .main, forMode: .common)
+    }
+
+    private func stopUpdates() {
+        displayLink?.invalidate()
+        displayLink = nil
+    }
+
+    @objc private func tick(_ link: CADisplayLink) {
+        frameCount += 1
+        let now = CACurrentMediaTime()
+        let window = now - lastFPSWindow
+        guard window >= 0.5 else { return }
+        currentFPS = Double(frameCount) / window
+        frameCount = 0
+        lastFPSWindow = now
+        let timing = PerformanceTelemetry.shared.snapshot()
+        let resolution = "\(Int(UIScreen.main.nativeBounds.width))×\(Int(UIScreen.main.nativeBounds.height))"
+        let scale = String(format: "%.1f", UIScreen.main.scale)
+        let refresh = Int(link.targetTimestamp > link.timestamp ? 1 / (link.targetTimestamp - link.timestamp) : 60)
+        let memory = Self.residentMemoryMegabytes()
+        metricsLabel.text = "\(device?.name ?? "Metal GPU")  [\(resolution)]\n\(scale)x  FPS: \(String(format: "%.1f", currentFPS))  [\(refresh)Hz]\nCPU frame: \(String(format: "%.2f", timing.cpu)) ms\nDust GPU: \(String(format: "%.2f", timing.gpu)) ms   Mem: \(String(format: "%.1f", memory)) MB"
+        chart.append(cpu: timing.cpu, gpu: timing.gpu)
+    }
+
+    private static func residentMemoryMegabytes() -> Double {
+        var info = mach_task_basic_info()
+        var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size / MemoryLayout<natural_t>.size)
+        let result = withUnsafeMutablePointer(to: &info) { pointer in
+            pointer.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+                task_info(mach_task_self_, task_flavor_t(MACH_TASK_BASIC_INFO), $0, &count)
+            }
+        }
+        guard result == KERN_SUCCESS else { return 0 }
+        return Double(info.resident_size) / 1_048_576
+    }
+}
+
+private final class PerformanceHUDChart: UIView {
+    private var cpuSamples: [CGFloat] = []
+    private var gpuSamples: [CGFloat] = []
+
+    func append(cpu: Double, gpu: Double) {
+        cpuSamples.append(CGFloat(min(1, cpu / 33.3)))
+        gpuSamples.append(CGFloat(min(1, gpu / 33.3)))
+        if cpuSamples.count > 60 { cpuSamples.removeFirst() }
+        if gpuSamples.count > 60 { gpuSamples.removeFirst() }
+        setNeedsDisplay()
+    }
+
+    override func draw(_ rect: CGRect) {
+        guard let context = UIGraphicsGetCurrentContext() else { return }
+        context.setStrokeColor(UIColor.white.withAlphaComponent(0.25).cgColor)
+        context.setLineWidth(0.5)
+        for i in 0...4 {
+            let y = CGFloat(i) * rect.height / 4
+            context.move(to: CGPoint(x: 0, y: y))
+            context.addLine(to: CGPoint(x: rect.width, y: y))
+        }
+        context.strokePath()
+        draw(samples: cpuSamples, color: .systemBlue, in: rect)
+        draw(samples: gpuSamples, color: .systemGreen, in: rect)
+    }
+
+    private func draw(samples: [CGFloat], color: UIColor, in rect: CGRect) {
+        guard samples.count > 1 else { return }
+        let path = UIBezierPath()
+        for (index, value) in samples.enumerated() {
+            let point = CGPoint(x: CGFloat(index) / 59 * rect.width, y: rect.height * (1 - value))
+            if index == 0 { path.move(to: point) } else { path.addLine(to: point) }
+        }
+        color.setStroke()
+        path.lineWidth = 1.2
+        path.stroke()
+    }
 }
