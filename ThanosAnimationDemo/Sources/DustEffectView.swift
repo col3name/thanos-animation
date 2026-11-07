@@ -137,7 +137,8 @@ final class DustEffectView: UIView, MTKViewDelegate {
         mtk.clearColor = MTLClearColorMake(0, 0, 0, 0)
         mtk.colorPixelFormat = .bgra8Unorm
         mtk.framebufferOnly = true
-        mtk.preferredFramesPerSecond = 60
+        let maximumFPS = UIScreen.main.maximumFramesPerSecond
+        mtk.preferredFramesPerSecond = min(maximumFPS, 120)
         mtk.enableSetNeedsDisplay = false
         mtk.isPaused = true
         mtk.delegate = self

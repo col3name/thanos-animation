@@ -1526,6 +1526,10 @@ private final class PerformanceHUD: UIView {
         guard displayLink == nil else { return }
         lastFPSWindow = CACurrentMediaTime()
         displayLink = CADisplayLink(target: self, selector: #selector(tick(_:)))
+        let maximumFPS = UIScreen.main.maximumFramesPerSecond
+        if maximumFPS >= 120 {
+            displayLink?.preferredFrameRateRange = CAFrameRateRange(minimum: 80, maximum: 120, preferred: 120)
+        }
         displayLink?.add(to: .main, forMode: .common)
     }
 
